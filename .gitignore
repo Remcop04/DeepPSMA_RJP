@@ -2,3 +2,4 @@ venv
 CHALLENGE_DATA
 temp
 inference_test.nii.gz
+DEEP-PSMA-Algorithm/nnUNet_data
