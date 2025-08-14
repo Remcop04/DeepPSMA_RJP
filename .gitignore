@@ -1,4 +1,4 @@
 venv
-DEEP-PSMA-Algorithm\resources\nnUNet_data\results\Dataset802_FDG_PET\nnUNetTrainer__nnUNetPlans__3d_fullres\fold_0\checkpoint_final.pth
 CHALLENGE_DATA
 temp
+inference_test.nii.gz
