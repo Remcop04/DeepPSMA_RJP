@@ -30,7 +30,7 @@ import shutil
 import numpy
 from DEEP_PSMA_Infer import run_inference
 import numpy as np
-from model.postprocessing import filter_fdg_by_overlap_with_probabilities
+from postprocessing import filter_fdg_by_overlap_with_probabilities
 
 INPUT_PATH = Path("/input")
 OUTPUT_PATH = Path("/output")
@@ -123,9 +123,10 @@ def interf0_handler():
     #option 2, include model files in resources/ folder (included in example script) or any other location that gets bundled by Dockerfile (COPY --chown=user:user resources /opt/app/resources)
     
     #run inference on PSMA PET/CT
-    output_psma_ttb_label, output_psma_ttb_prob=run_inference(input_psma_pet_ga_68,input_psma_ct_image,tracer='PSMA',
+    output_psma_ttb_label, output_psma_ttb_prob=run_inference(input_psma_pet_ga_68,input_psma_ct_image,input_psma_ct_image_organ_segmentation,
+                                        tracer='PSMA',
                                         suv_threshold=float(input_psma_pet_suv_threshold),output_fname=False,
-                   return_ttb_sitk=True,return_prob_sitk=True, return_prob_sitk=True, temp_dir='/output/temp',fold='0',
+                   return_ttb_sitk=True, temp_dir='/output/temp',fold='0',
                    expansion_radius=7.)
 
     # Save your output
@@ -135,9 +136,10 @@ def interf0_handler():
     )
 
     #run inference on FDG PET/CT
-    output_fdg_ttb_label, output_fdg_ttb_prob, =run_inference(input_fdg_pet,input_fdg_ct_image,tracer='FDG',
+    output_fdg_ttb_label, output_fdg_ttb_prob, =run_inference(input_fdg_pet,input_fdg_ct_image,input_fdg_ct_image_organ_segmentation,
+                                                              tracer='FDG',
                                         suv_threshold=float(input_fdg_pet_suv_threshold),output_fname=False,
-                   return_ttb_sitk=True, return_prob_sitk=True, temp_dir='/output/temp',fold='0',
+                   return_ttb_sitk=True, temp_dir='/output/temp',fold='0',
                    expansion_radius=7.)    
 
     # Select the correct transform

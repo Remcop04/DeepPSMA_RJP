@@ -10,8 +10,8 @@ def filter_fdg_by_overlap_with_probabilities(
     distance_threshold=10,
     dilation_radius=5,
     min_relative_overlap=0.10,
-    psma_prob_base=0.99,
-    psma_prob_slope=0.5,
+    psma_prob_base=1.0,
+    psma_prob_slope=0.6,
     min_psma_prob=0.5,
     fdg_prob_thresh=0.90,
     print_reason=True

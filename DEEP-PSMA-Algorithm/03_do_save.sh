@@ -9,7 +9,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 DOCKER_IMAGE_TAG="example-algorithm-final"
 
 echo "=+= (Re)build the container"
-#source "${SCRIPT_DIR}/01_do_build.sh"
+source "${SCRIPT_DIR}/01_do_build.sh"
 
 # Get the build information from the Docker image tag
 build_timestamp=$( docker inspect --format='{{ .Created }}' "$DOCKER_IMAGE_TAG")
