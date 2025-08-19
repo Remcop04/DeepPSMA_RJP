@@ -4,8 +4,9 @@ from scipy.ndimage import label, distance_transform_edt, binary_dilation
 
 def _median_ignore_zeros(prob_array: np.ndarray, mask: np.ndarray, default: float = 0.0) -> float:
     """
-    Geef de mediaan van de waarden in prob_array binnen mask, waarbij 0 wordt genegeerd.
-    Als er na filtering geen waarden overblijven, retourneer 'default'.
+    Return the median of the values in `prob_array` within `mask`, ignoring zeros.
+    If no values remain after filtering, return `'default'`.
+
     """
     vals = prob_array[mask]
     if vals.size == 0:
@@ -18,11 +19,13 @@ def _median_ignore_zeros(prob_array: np.ndarray, mask: np.ndarray, default: floa
     return float(np.median(vals))
 
 
-def get_core_mask_top_fraction(prob_fdg, lesion_mask, top_fraction=0.4, small_lesion_size=5):
+def get_core_mask_top_fraction(prob_fdg, lesion_mask, top_fraction=0.5, small_lesion_size=5):
     """
-    Bepaal kernmasker van een laesie op basis van de hoogste fractie probabilities.
-    - top_fraction: fractie van voxels die als 'kern' wordt genomen (bijv. 0.2 = hoogste 20%)
-    - small_lesion_size: als laesie klein is, neem alleen de voxel met max probability
+    Determine the core mask of a lesion based on the highest fraction of probabilities.
+
+    `top_fraction`: fraction of voxels to be considered as the "core"
+    `small_lesion_size`: if the lesion is small, select only the voxel with the maximum probability
+
     """
     lesion_probs = prob_fdg[lesion_mask]
     n = len(lesion_probs)
@@ -57,9 +60,10 @@ def filter_fdg_by_overlap_with_probabilities(
     print_reason=True,
 ):
     """
-    Filter FDG-laesies o.b.v. PSMA overlap/nabijheid én probabiliteiten.
-    - Neemt ALLE relevante PSMA-laesies mee; acceptatie zodra ÉÉN PSMA-laesie voldoet.
-    - Mediaanprobabilities worden berekend met uitsluiting van nulwaarden.
+    Filter FDG lesions based on PSMA overlap/proximity **and** probabilities.
+    Include **ALL relevant PSMA lesions**; acceptance occurs as soon as **ONE** PSMA lesion meets the criteria.
+    Median probabilities are calculated **excluding zero values**.
+
     """
     psma = sitk.GetArrayFromImage(psma_pred_sitk).astype(np.uint8)
     fdg = sitk.GetArrayFromImage(fdg_pred_sitk).astype(np.uint8)
@@ -79,7 +83,7 @@ def filter_fdg_by_overlap_with_probabilities(
         if lesion_volume < 1:
             continue
 
-        # Nabijheid via SignedMaurerDistanceMap (mm)
+        # Dilate using SignedMaurerDistanceMap (mm)
         radius_mm = 8
         lesion_mask_sitk = sitk.GetImageFromArray(lesion_mask.astype(np.uint8))
         lesion_mask_sitk.CopyInformation(fdg_pred_sitk)
@@ -89,11 +93,11 @@ def filter_fdg_by_overlap_with_probabilities(
         dilated = dist <= radius_mm
         dilated_mask = sitk.GetArrayFromImage(dilated).astype(bool)
 
-        # Core FDG-masker en mediaan zonder nullen
+        # Core FDG-mask and median
         core_mask_fdg = get_core_mask_top_fraction(prob_fdg, lesion_mask, top_fraction=0.5)
         median_prob_fdg = _median_ignore_zeros(prob_fdg, core_mask_fdg, default=0.0)
 
-        # Zoek alle overlappende/aanliggende PSMA-laesies
+        # Find all overlapping/nearby PSMA lesions
         overlapping_labels = np.unique(labeled_psma[dilated_mask])
         overlapping_labels = overlapping_labels[overlapping_labels > 0]
 
@@ -111,26 +115,26 @@ def filter_fdg_by_overlap_with_probabilities(
                     median_prob_psma = 0.0
                     relative_psma_volume = 0.0
 
-                # Adaptieve PSMA-drempel o.b.v. FDG-zekerheid
+                # Adaptive PSMA-threshold based on FDG-probability
                 required_psma_prob = psma_prob_base - psma_prob_slope * median_prob_fdg
 
-                # Acceptatie op basis van PSMA-bewijs
+                # Accept on PSMA support
                 if relative_psma_volume >= min_relative_overlap and median_prob_psma >= required_psma_prob:
                     best_reason = (f"PSMA support (PSMA_label={psma_label}, "
                                    #f"v~={relative_psma_volume:.1%}, "
                                    f"median p={median_prob_psma:.2f} ≥ req {required_psma_prob:.2f}. "
                                    f"FDG_vol {lesion_volume})")
                     accept = True
-                    break  # één ondersteunende PSMA-laesie is voldoende
+                    break
 
-        # Valt terug op FDG-confidence als PSMA niet overtuigt
+        # Try FDG confidence when there is no PSMA support
         if not accept and median_prob_fdg >= fdg_prob_thresh:
             best_reason = (f"FDG high confidence (median p(no-zero)={median_prob_fdg:.2f} ≥ {fdg_prob_thresh}. "
                            f"FDG_vol {lesion_volume})")
             accept = True
 
         if not accept:
-            # Meld expliciet dat nullen genegeerd zijn
+            # Mention that lesion is rejected
             best_reason = (f"Rejected: missing PSMA-support; "
                            f"p_fdg={median_prob_fdg:.2f} < {fdg_prob_thresh}. "
                            f"FDG_vol {lesion_volume})")
