@@ -5,3 +5,4 @@ inference_test.nii.gz
 DEEP-PSMA-Algorithm/nnUNet_data/
 exports
 test
+DEEP-PSMA_Algorithm/__pycache__
